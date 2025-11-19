@@ -1,3 +1,7 @@
+import streamlit as st
+st.title("My App")
+
+
 def generate_recipe_with_crewai(ingredients):
     task1 = Task(
         description=f"Create a detailed and clear recipe using these ingredients: {ingredients}",
