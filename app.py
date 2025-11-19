@@ -2,6 +2,8 @@ import streamlit as st
 from crewai import Agent, Task, Crew, LLM
 import os
 from dotenv import load_dotenv
+import json
+import re
 
 # Load API key
 load_dotenv()
@@ -13,6 +15,7 @@ llm = LLM(
     base_url="https://api.groq.com/openai/v1"
 )
 
+st.set_page_config(page_title="Recipe Suggestor AI", layout="wide")
 st.title("🍳 Recipe Suggestor AI — CrewAI Version")
 
 # --------------------------
@@ -39,6 +42,16 @@ improvement_agent = Agent(
     backstory="You suggest improvements to meals.",
     llm=llm
 )
+
+# --------------------------
+# Clean & Extract Sections
+# --------------------------
+
+def extract_section(text, header):
+    """Extracts a block that starts with a header like 'Ingredients:'."""
+    pattern = rf"{header}[:\n]+(.*?)(?:\n[A-Z][A-Za-z ]+[:\n]|$)"
+    match = re.search(pattern, text, re.S)
+    return match.group(1).strip() if match else None
 
 # --------------------------
 # Create Recipe Function
@@ -80,7 +93,47 @@ if st.button("Generate Recipe"):
     if ingredients.strip():
         with st.spinner("Generating..."):
             result = generate_recipe_with_crewai(ingredients)
-            st.success("Your Recipe is Ready!")
-            st.write(result)
+
+        st.success("Your Recipe is Ready!")
+
+        # Convert to string
+        raw = str(result)
+
+        # -------- Extract Parts Automatically --------
+        recipe = extract_section(raw, "Recipe") or "Not Found"
+        ingredients_block = extract_section(raw, "Ingredients")
+        steps_block = extract_section(raw, "Instructions") or extract_section(raw, "Steps")
+        nutrition_block = extract_section(raw, "Nutrition")
+        improvement_block = extract_section(raw, "Improvements") or extract_section(raw, "Healthier Version")
+
+        col1, col2 = st.columns([2, 1])
+
+        # ---------- LEFT SIDE ----------
+        with col1:
+            st.header("📌 Final Recipe")
+            st.write(recipe)
+
+            if ingredients_block:
+                st.subheader("🥗 Ingredients")
+                st.write(ingredients_block)
+
+            if steps_block:
+                st.subheader("👩‍🍳 Instructions")
+                st.write(steps_block)
+
+            if improvement_block:
+                with st.expander("💡 Healthy Improvements"):
+                    st.write(improvement_block)
+
+        # ---------- RIGHT SIDE ----------
+        with col2:
+            st.header("🍎 Nutrition Breakdown")
+            st.write(nutrition_block or "Nutrition not found")
+
+        # Raw Debug
+        st.markdown("---")
+        with st.expander("🔍 Raw CrewAI Output (Debug)"):
+            st.write(raw)
+
     else:
         st.warning("Please enter ingredients.")
