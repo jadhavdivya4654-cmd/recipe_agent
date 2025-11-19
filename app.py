@@ -48,16 +48,19 @@ def generate_recipe_with_crewai(ingredients):
     task1 = Task(
         description=f"Create a recipe using these ingredients: {ingredients}",
         agent=recipe_agent,
+        expected_output="A clear, step-by-step recipe."
     )
 
     task2 = Task(
         description="Give the nutrition details of this recipe.",
         agent=nutrition_agent,
+        expected_output="A simple nutrition breakdown."
     )
 
     task3 = Task(
         description="Improve this recipe for better health.",
         agent=improvement_agent,
+        expected_output="A healthier version of the recipe."
     )
 
     crew = Crew(
